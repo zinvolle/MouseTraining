@@ -1,0 +1,96 @@
+﻿@using MoleGame.Components
+@page "/"
+
+
+<div class="wallpaper">
+<div class="info-container">
+    <p class="title">Valorant Head Tracker</p>
+    <h2>Score: @score</h2>
+    <h2>Time Remaining: @currentTime</h2>
+    <h2>@message</h2>
+
+
+    <div class="board">
+        @foreach (var s in Squares)
+        {
+            <Square SquareModel = "s" onMouseUp="()=>MouseUp(s)"/>
+        }
+    </div>
+</div>
+</div>
+
+
+
+@code {
+    PeriodicTimer gameLoopTimer;
+    PeriodicTimer gameTimeTimer;
+
+    private void MouseUp(SquareModel s)
+    {
+        if (gameIsRunning)
+        {
+            if(s.Id == hitPosition)
+            {
+                score += 1;
+            }
+        }
+    }
+
+    private Random random = new Random();
+    int? lastPosition = null;
+
+    private void SetNextAppearance()
+    {
+        foreach(var item in Squares)
+        {
+            item.IsShown = false;
+        }
+
+        int randomPosition;
+
+        do
+        {
+            randomPosition = random.Next(0, 150);
+        } while (lastPosition == randomPosition);
+
+        Squares[randomPosition].IsShown = true;
+        hitPosition = randomPosition;
+        lastPosition = randomPosition;
+        StateHasChanged();
+    }
+
+    private async Task GameLoopAsync(PeriodicTimer timer)
+    {
+        while (gameIsRunning)
+        {
+            SetNextAppearance();
+            await timer.WaitForNextTickAsync();
+        }
+    }
+
+    private async Task GameTimeAsync(PeriodicTimer timer)
+    {
+        while (gameIsRunning)
+        {
+            currentTime--;
+            if(currentTime == 0)
+            {
+                message = "Game ended!!";
+                gameIsRunning = false;
+            }
+            StateHasChanged();
+            await timer.WaitForNextTickAsync();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        gameLoopTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(gameSpeed));
+        _ = GameLoopAsync(gameLoopTimer);
+        gameTimeTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _ = GameTimeAsync(gameTimeTimer);
+    }
+
+
+}
