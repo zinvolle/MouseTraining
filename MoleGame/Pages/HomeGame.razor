@@ -1,34 +1,55 @@
 ﻿@using MoleGame.Components
 @page "/"
 
-<div class="gear-icon-container" @onclick="TogglePopup">
+<div class="gear-icon-container" @onclick="ToggleSettingsPopup">
     <img src="img/gear.png" class="gear-icon" alt="Settings"/>
 </div>
 
-@if (isPopupVisible)
+<div class="user-icon-container" @onclick="ToggleProfilePopup">
+    <img src="img/user.png" class="user-icon" alt="User" />
+</div>
+
+
+@if (isSettingsPopupVisible)
 {
     <div class="popup-overlay">
         <div class="popup-content">
             <h2>Select Difficulty</h2>
-            <button @onclick="@(() => SetDifficulty("easy"))">Easy</button>
-            <button @onclick="@(() => SetDifficulty("medium"))">Medium</button>
-            <button @onclick="@(() => SetDifficulty("hard"))">Hard</button>
-            <button class="close-button" @onclick="TogglePopup">Close</button>  
+            <button @onclick="@(() => ChangeDifficulty("easy"))">Easy</button>
+            <button @onclick="@(() => ChangeDifficulty("medium"))">Medium</button>
+            <button @onclick="@(() => ChangeDifficulty("hard"))">Hard</button>
+            <button class="close-button" @onclick="ToggleSettingsPopup">Close</button>  
         </div>
     </div>
 }
 
 
+
+@if (isProfilePopupVisible)
+{
+    <div class="popup-overlay">
+        <div class="popup-content scores">
+            <p>Easy High Score: @highScoreEasy</p>
+            <p>Medium High Score: @highScoreMedium</p>
+            <p>Hard High Score: @highScoreHard</p>
+            <button class="close-button" @onclick="ToggleProfilePopup">Close</button>
+        </div>
+    </div>
+}
+
 <div class="wallpaper">
 
-<div class="info-container">
-       
+
+<div class="info-container @difficulty">
     <p class="title">Mouse Tracking Trainer</p>
     <div class="game-info">
-        <h2 style="margin-top:15px">Score: @score</h2>
-        <button class="start-button">Start</button>
-        <h2 style="margin-top:15px">Time: @currentTime</h2>
+        <h2 style="margin-top:10px">Score: @score</h2>
+        <button class="start-button" @onclick="@(()=>Start())">Start</button>
+        <button class="start-button" @onclick="@(()=>Reset())">Reset</button>
+        <h2 style="margin-top:10px">Time: @currentTime</h2>
     </div>
+
+
 
     <div class="board">
         @foreach (var s in Squares)
@@ -42,11 +63,21 @@
 
 
 @code {
-    private bool isPopupVisible = false;
+    private int highScoreEasy;
+    private int highScoreMedium;
+    private int highScoreHard;
 
-    private void TogglePopup()
+    private bool isSettingsPopupVisible = false;
+    private bool isProfilePopupVisible = false;
+
+    private void ToggleSettingsPopup()
     {
-        isPopupVisible = !isPopupVisible;
+        isSettingsPopupVisible = !isSettingsPopupVisible;
+    }
+
+    private void ToggleProfilePopup()
+    {
+        isProfilePopupVisible = !isProfilePopupVisible;
     }
 
     PeriodicTimer gameLoopTimer;
@@ -59,6 +90,8 @@
             if(s.Id == hitPosition)
             {
                 score += 1;
+                Squares[s.Id].IsShown = false;
+                hitPosition = -1;
             }
         }
     }
@@ -68,16 +101,16 @@
 
     private void SetNextAppearance()
     {
-        foreach(var item in Squares)
+        if (lastPosition != null)
         {
-            item.IsShown = false;
+            Squares[(int)lastPosition].IsShown = false;
         }
 
         int randomPosition;
 
         do
         {
-            randomPosition = random.Next(0, 150);
+            randomPosition = random.Next(0, numberOfSquares);
         } while (lastPosition == randomPosition);
 
         Squares[randomPosition].IsShown = true;
@@ -100,24 +133,56 @@
         while (gameIsRunning)
         {
             currentTime--;
-            if(currentTime == 0)
+            if(currentTime <= 0)
             {
-                message = "Game ended!!";
-                gameIsRunning = false;
+                SetHighScore();
+                Reset();
             }
-            StateHasChanged();
+            
             await timer.WaitForNextTickAsync();
         }
     }
 
-    protected override void OnInitialized()
+    private void Start()
     {
-        base.OnInitialized();
+        gameIsRunning = true;
         gameLoopTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(gameSpeed));
         _ = GameLoopAsync(gameLoopTimer);
         gameTimeTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         _ = GameTimeAsync(gameTimeTimer);
     }
 
+    private void Reset()
+    {
+        ResetGame();
+        gameLoopTimer.Dispose();
+        gameTimeTimer.Dispose();
+        if (lastPosition != null)
+        {
+            Squares[(int)lastPosition].IsShown = false;
+        }
+        lastPosition = null;
+    }
 
+    private void SetHighScore()
+    {
+        switch (difficulty)
+        {
+            case "easy":
+                highScoreEasy = score;
+                break;
+            case "medium":
+                highScoreMedium = score;
+                break;
+            case "hard":
+                highScoreHard = score;
+                break;
+        }
+    }
+
+    private void ChangeDifficulty(string newDifficulty)
+    {
+        SetDifficulty(newDifficulty);
+        Reset();
+    }
 }

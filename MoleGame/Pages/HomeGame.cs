@@ -5,19 +5,20 @@ namespace MoleGame.Pages
     public partial class HomeGame
     {
         int score = 0;
-        int currentTime = 10;
+        int currentTime = 120;
         int hitPosition = 0;
         string message = "";
         int gameSpeed;
-        bool gameIsRunning = true;
+        bool gameIsRunning = false;
         private int numberOfSquares;
+        string difficulty;
         public List<SquareModel> Squares { get; set; } = new List<SquareModel>();
 
         private readonly Dictionary<string, (int squareCount, int speed)> difficultySettings = new Dictionary<string, (int, int)>
         {
             {"easy", (150, 1000)},
-            {"medium",(400, 800)},
-            {"hard", (1000, 500)}
+            {"medium",(2250, 800)},
+            {"hard", (9000, 500)}
         };
 
         public HomeGame()
@@ -31,7 +32,8 @@ namespace MoleGame.Pages
             {
                 numberOfSquares = settings.squareCount;
                 gameSpeed = settings.speed;
-                InitializeSquares();
+                this.difficulty = difficulty;
+                InitializeSquares(difficulty);
             }
             else
             {
@@ -39,29 +41,22 @@ namespace MoleGame.Pages
             }
         }
 
-        private void InitializeSquares()
+        private void InitializeSquares(string difficulty)
         {
             Squares.Clear();
             for (int i = 0; i < numberOfSquares; i++)
             {
-                Squares.Add(new SquareModel { Id = i });
+                Squares.Add(new SquareModel { Id = i, Difficulty = difficulty });
             }
         }
 
-        public void ChangeDifficulty(string newDifficulty)
-        {
-            SetDifficulty(newDifficulty);
-            ResetGame(); // Reset game when difficulty changes
-        }
 
         private void ResetGame()
         {
             score = 0;
-            currentTime = 10;
-            hitPosition = 0;
+            currentTime = 120;
             message = "";
-            gameIsRunning = true;
-            // Additional reset logic if needed
+            gameIsRunning = false;
         }
     }
 }
